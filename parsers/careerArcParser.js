@@ -2,9 +2,9 @@
 var cheerio = require("cheerio");
 const url = require('url');
 
-var ATSJazzParser = function ATSJazzParser(){};
+var CareerArcParser = function CareerArcParser(){};
 
-ATSJazzParser.prototype.parse = function(html){
+CareerArcParser.prototype.parse = function(html){
 
     var $ = cheerio.load(html);
 
@@ -33,34 +33,33 @@ ATSJazzParser.prototype.parse = function(html){
             result.company = jobDescriptionObject.hiringOrganization.name;
             result.postedDate = jobDescriptionObject.datePosted;
             result.employmentType = jobDescriptionObject.employmentType;
-
-        }catch(err){
+            result.location = jobDescriptionObject.jobLocation.address.addressLocality + ', ' + 
+                                jobDescriptionObject.jobLocation.address.addressRegion;
+        }
+        catch(err) {
             console.log("Invalid string format, cannot parse to JSON Object");
         }
 
     }
 
-    if ( result.title === '' && $('title').first().length > 0 ){
-
-        var titleAndCompany = $('title').first().text().trim();
-
-        result.title = titleAndCompany.split("-")[0];
-
-        result.company = titleAndCompany.split("-")[1];
+    if( result.title === '' && $('div.job-details > p').first().length > 0 ){
+        result.title = $('div.job-details > p').first().text().split(/-[0-9]/g)[0];
     }
 
+    if( result.company === '' && $('div.info').first().length > 0 ){
+        $('div.info').each(function(i, ele){
 
-    if ( $("li[title=Location]").first().length > 0 ){
-        result.location = $("li[title=Location]").text();
+            if( $(this).text().indexOf('Company') >= 0 ){
+                result.company = $(this).text().split(':')[1];
+            }
+            if( $(this).text().indexOf('Location') >= 0 ){
+                result.location = $(this).text().split(':')[1];
+            }
+        })
     }
 
-
-    if ( $('div.brand-logo a img').first().length > 0 ){
-
-        let logoUrl = $('div.brand-logo a img').attr('src');
-        
-        result.imageUrl = url.resolve('http:', logoUrl);
-
+    if ( $('div.job-info > div.logo img').first().length > 0 ){
+        result.imageUrl = $('div.job-info > div.logo img').first().attr('src');
     }
 
 
@@ -84,4 +83,4 @@ ATSJazzParser.prototype.parse = function(html){
 
 };
 
-module.exports = ATSJazzParser;
+module.exports = CareerArcParser;
